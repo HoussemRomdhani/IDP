@@ -1,38 +1,39 @@
-# ASP.NET Core (.NET Framework)
-# Build and test ASP.NET Core projects targeting the full .NET Framework.
-# Add steps that publish symbols, save build artifacts, and more:
-# https://docs.microsoft.com/azure/devops/pipelines/languages/dotnet-core
-
 trigger:
-- master
+- main
 
 pool:
   vmImage: 'windows-latest'
-
-# ASP.NET Core updated
-# Build and test ASP.NET Core projects targeting .NET Core.
-# Add steps that run tests, create a NuGet package, deploy, and more:
-# https://docs.microsoft.com/azure/devops/pipelines/languages/dotnet-core
-
-
 
 variables:
   buildConfiguration: 'Release'
 
 steps:
-- script: dotnet restore
 
-- script: dotnet build --configuration $(buildConfiguration)
-  displayName: 'dotnet build $(buildConfiguration)'
+    - task: UseDotNet@2 
+      displayName: ".NET Core 3.1.x"
+      inputs:
+        version: '3.1.x'
+        packageType: sdk
+    - script: dotnet build --configuration $(buildConfiguration)
+      displayName: 'dotnet build $(buildConfiguration)'
 
-# do this after you've built your app, near the end of your pipeline in most cases
-# for example, you do this before you deploy to an Azure web app on Windows
-- task: DotNetCoreCLI@2
-  inputs:
-    command: publish
-    publishWebProjects: True
-    arguments: '--configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory)'
-    zipAfterPublish: True 
+    - task: DotNetCoreCLI@2
+      displayName: "Test"
+      inputs:
+        command: test
+        projects: '**/*tests/*.csproj'
+        arguments: '--configuration $(buildConfiguration)'
 
-- task: PublishBuildArtifacts@1
-  displayName: 'publish artifacts'
+    - task: DotNetCoreCLI@2
+      displayName: "Publish"
+      inputs:
+        command: 'publish'
+        publishWebProjects: true
+        arguments: '-r win-x64 --configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory)'
+        zipAfterPublish: true
+
+    - task: PublishBuildArtifacts@1
+      displayName: "Upload Artifacts"
+      inputs:
+        pathtoPublish: '$(Build.ArtifactStagingDirectory)' 
+        artifactName: 'idp' 
